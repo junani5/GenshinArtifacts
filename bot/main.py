@@ -32,25 +32,26 @@ class ArtifactOptimizerBot(discord.Client):
 client = ArtifactOptimizerBot()
 
 
-@client.tree.command(name="optimize", description="Recommend optimal 5-piece artifact sets based on your inventory")
+@client.tree.command(name="optimize", description="Recommend optimal artifacts for all 5 slots based on your inventory")
 @app_commands.describe(character="The character to optimize artifacts for")
 async def optimize(interaction: discord.Interaction, character: str):
     """
     Placeholder command for artifact optimization.
 
     This command will analyze the user's artifact inventory and recommend
-    the optimal 5-piece artifact set based on calculated sub-stat efficiency.
+    the optimal artifact for each of the 5 slots (Flower, Plume, Sands,
+    Goblet, Circlet) based on calculated sub-stat efficiency.
     """
     # TODO: Implement artifact optimization logic
     # 1. Fetch user's inventory from database
     # 2. Calculate sub-stat efficiency for each artifact
-    # 3. Find optimal 5-piece combination for the specified character
+    # 3. Find optimal artifact for each of the 5 slots for the specified character
     # 4. Return recommendations to user
 
     await interaction.response.send_message(
         f"🔧 Artifact optimization for **{character}** is coming soon!\n\n"
         "This feature will analyze your artifact inventory and recommend "
-        "the optimal 5-piece set based on sub-stat efficiency.",
+        "the optimal artifact for each of the 5 slots based on sub-stat efficiency.",
         ephemeral=True
     )
 
