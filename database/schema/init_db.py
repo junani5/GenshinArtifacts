@@ -8,7 +8,7 @@ def init_db():
     conn.execute("PRAGMA foreign_keys = ON;")
 
     # schema.sql 읽어서 그대로 실행
-    with open("schema.sql", "r", encoding="utf-8") as f:
+    with open("create_tables.sql", "r", encoding="utf-8") as f:
         schema = f.read()
     conn.executescript(schema)
 
