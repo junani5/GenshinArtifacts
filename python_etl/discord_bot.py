@@ -7,13 +7,13 @@ import pymysql
 # ==========================================
 
 # 1-1. 디스코드 봇 토큰 (주의: 깃허브에 올릴 땐 지우고 올리세요!)
-TOKEN = 'YOUR_BOT_TOKEN_HERE'
+TOKEN = '..'
 
 # 1-2. DB 연결 정보 (generate_data.py와 동일)
 DB_CONFIG = {
     'host': 'localhost',
     'user': 'root',
-    'password': '1234',  # 본인 비밀번호 확인
+    'password': 'kms050426!',  # 본인 비밀번호 확인
     'db': 'genshin_project',
     'charset': 'utf8mb4',
     'cursorclass': pymysql.cursors.DictCursor

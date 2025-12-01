@@ -9,7 +9,7 @@ from tqdm import tqdm  # 진행률 표시바 (있어 보임)
 
 # DB 연결 정보 (본인 환경에 맞게 수정 필수!)
 DB_USER = 'root'  # MySQL 아이디
-DB_PASS = '1234'  # MySQL 비밀번호
+DB_PASS = 'kms050426!'  # MySQL 비밀번호
 DB_HOST = 'localhost'  # 주소
 DB_PORT = '3306'  # 포트
 DB_NAME = 'genshin_project'

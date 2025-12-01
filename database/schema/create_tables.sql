@@ -1,97 +1,60 @@
-PRAGMA foreign_keys = ON;
+-- MySQL용 스키마 (Genshin Artifact Project)
+-- 파이썬 코드(generate_data.py, discord_bot.py)와 호환되는 버전입니다.
 
--- 캐릭터 기본 정보
-CREATE TABLE IF NOT EXISTS Character (
-    character_id INTEGER PRIMARY KEY,  --내부 캐릭터구분용
-    name         TEXT NOT NULL UNIQUE
-);
+-- 1. 데이터베이스 생성 및 선택
+CREATE DATABASE IF NOT EXISTS genshin_project CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE genshin_project;
 
--- 성유물 부위(슬롯) 정의
-CREATE TABLE IF NOT EXISTS ArtifactSlot (
-    slot_id      INTEGER PRIMARY KEY,      -- 1~5 정도로
-    code         TEXT NOT NULL UNIQUE,     -- 'flower', 'plume', 'sands', 'goblet', 'circlet'
-    display_name TEXT NOT NULL             -- '꽃', '깃털', '모래시계', '성배', '왕관'
-);
+-- 2. 성유물 테이블 (Artifacts)
+-- 설명: 조회 성능 최적화를 위해 부옵션을 컬럼으로 펼친 'Wide Table' 구조 (반정규화)
+DROP TABLE IF EXISTS Artifacts;
+CREATE TABLE Artifacts (
+    ArtifactID INT AUTO_INCREMENT PRIMARY KEY,
+    Set_Name VARCHAR(50) NOT NULL,
+    Slot VARCHAR(20) NOT NULL,
+    Main_Stat VARCHAR(20) NOT NULL,
+    Level INT DEFAULT 20,
+    Rarity INT DEFAULT 5,
+    
+    -- 부옵션 10종 데이터 (값이 없으면 0 처리)
+    Sub_HP_Flat FLOAT DEFAULT 0,
+    Sub_HP_Pct FLOAT DEFAULT 0,
+    Sub_ATK_Flat FLOAT DEFAULT 0,
+    Sub_ATK_Pct FLOAT DEFAULT 0,
+    Sub_DEF_Flat FLOAT DEFAULT 0,
+    Sub_DEF_Pct FLOAT DEFAULT 0,
+    Sub_Crit_Rate FLOAT DEFAULT 0,
+    Sub_Crit_DMG FLOAT DEFAULT 0,
+    Sub_EM FLOAT DEFAULT 0,
+    Sub_ER FLOAT DEFAULT 0,
 
--- 성유물 세트 정보
-CREATE TABLE IF NOT EXISTS ArtifactSet (
-    set_id        INTEGER PRIMARY KEY,
-    name          TEXT NOT NULL UNIQUE,
-    rarity_min    INTEGER,
-    rarity_max    INTEGER,
-    two_piece_effect  TEXT,
-    four_piece_effect TEXT
-);
+    -- [성능 최적화] 자주 검색하는 조건에 대한 인덱스
+    INDEX idx_slot_set (Slot, Set_Name),
+    INDEX idx_main_stat (Main_Stat)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 스탯 타입 (HP%, 치확, 치피 등)
-CREATE TABLE IF NOT EXISTS StatType (
-    stat_id      INTEGER PRIMARY KEY,
-    code         TEXT NOT NULL UNIQUE,   -- HP_FLAT, CRIT_RATE ...
-    display_name TEXT NOT NULL,
-    is_percentage INTEGER NOT NULL CHECK (is_percentage IN (0, 1))
-);
+-- 3. 캐릭터별 가중치 테이블 (Character_Weights)
+-- 설명: 특정 캐릭터가 어떤 스탯을 중요하게 여기는지 저장 (추천 알고리즘용)
+DROP TABLE IF EXISTS Character_Weights;
+CREATE TABLE Character_Weights (
+    Character_Name VARCHAR(50) PRIMARY KEY,
+    Preferred_Set VARCHAR(50),
+    
+    -- 가중치 점수 (예: 치확 2.0점, 원마 0.5점)
+    W_HP_Pct FLOAT DEFAULT 0,
+    W_ATK_Pct FLOAT DEFAULT 0,
+    W_DEF_Pct FLOAT DEFAULT 0,
+    W_Crit_Rate FLOAT DEFAULT 0,
+    W_Crit_DMG FLOAT DEFAULT 0,
+    W_EM FLOAT DEFAULT 0,
+    W_ER FLOAT DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 유저가 입력한 성유물 4개
-CREATE TABLE IF NOT EXISTS UserArtifact (
-    session_id      INTEGER NOT NULL,
-    slot_id         INTEGER NOT NULL,      -- FK → ArtifactSlot
-    set_id          INTEGER,               -- 나중에 세트까지 받으면
-    main_stat_id    INTEGER NOT NULL,
-    main_stat_value REAL,
-
-    PRIMARY KEY (session_id, slot_id),  -- 한 세션에서 같은 부위 중복 방지
-    FOREIGN KEY (session_id)   REFERENCES UserBuildSession(session_id) ON DELETE CASCADE,
-    FOREIGN KEY (slot_id)      REFERENCES ArtifactSlot(slot_id),
-    FOREIGN KEY (main_stat_id) REFERENCES StatType(stat_id),
-    FOREIGN KEY (set_id)       REFERENCES ArtifactSet(set_id)
-);
-
-CREATE TABLE IF NOT EXISTS UserArtifactSubStat (
-    session_id  INTEGER NOT NULL,
-    slot_id     INTEGER NOT NULL,
-    stat_id     INTEGER NOT NULL,
-    value       REAL    NOT NULL,
-
-    PRIMARY KEY (session_id, slot_id, stat_id),
-    FOREIGN KEY (session_id, slot_id)
-        REFERENCES UserArtifact(session_id, slot_id) ON DELETE CASCADE,
-    FOREIGN KEY (stat_id) REFERENCES StatType(stat_id)
-);
-
--- [중요] 추천 빌드 테이블(간단 버전이라도 있어야 FK가 안 터짐)
-CREATE TABLE IF NOT EXISTS RecommendedBuild (
-    build_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    character_id  INTEGER NOT NULL,
-    name          TEXT NOT NULL,
-
-    FOREIGN KEY (character_id) REFERENCES Character(character_id)
-);
-
-CREATE TABLE UserBuildSession (
-    session_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    character_id INTEGER NOT NULL,
-    created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS RecommendedMainStat (
-    build_id  INTEGER NOT NULL,        -- FK → RecommendedBuild
-    slot_id   INTEGER NOT NULL,        -- FK → ArtifactSlot
-    stat_id   INTEGER NOT NULL,        -- FK → StatType
-    is_mandatory INTEGER NOT NULL DEFAULT 1,  -- 꼭 이 메인옵이어야 하는지 (0/1)
-
-    PRIMARY KEY (build_id, slot_id),
-    FOREIGN KEY (build_id) REFERENCES RecommendedBuild(build_id) ON DELETE CASCADE,
-    FOREIGN KEY (slot_id)  REFERENCES ArtifactSlot(slot_id),
-    FOREIGN KEY (stat_id)  REFERENCES StatType(stat_id)
-);
-
--- 빌드별 부옵 가중치
-CREATE TABLE IF NOT EXISTS RecommendedSubStatWeight (
-    build_id  INTEGER NOT NULL,
-    stat_id   INTEGER NOT NULL,
-    weight    REAL    NOT NULL,   -- 0.0 ~ 10.0
-
-    PRIMARY KEY (build_id, stat_id),
-    FOREIGN KEY (build_id) REFERENCES RecommendedBuild(build_id) ON DELETE CASCADE,
-    FOREIGN KEY (stat_id)  REFERENCES StatType(stat_id)
-);
+-- 4. 초기 필수 데이터 (Seed Data)
+-- 설명: 봇이 작동하기 위해 필요한 최소한의 캐릭터 데이터
+INSERT IGNORE INTO Character_Weights 
+(Character_Name, Preferred_Set, W_HP_Pct, W_Crit_Rate, W_Crit_DMG, W_EM, W_ER)
+VALUES 
+('Hu Tao', 'Crimson Witch of Flames', 0.8, 2.0, 1.0, 0.5, 0),
+('Raiden', 'Emblem of Severed Fate', 0, 2.0, 1.0, 0, 1.5),
+('Nahida', 'Deepwood Memories', 0, 1.0, 1.0, 2.0, 0.5);
