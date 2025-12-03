@@ -55,6 +55,5 @@ CREATE TABLE Character_Weights (
 INSERT IGNORE INTO Character_Weights 
 (Character_Name, Preferred_Set, W_HP_Pct, W_Crit_Rate, W_Crit_DMG, W_EM, W_ER)
 VALUES 
-('Hu Tao', 'Crimson Witch of Flames', 0.8, 2.0, 1.0, 0.5, 0),
 ('Raiden', 'Emblem of Severed Fate', 0, 2.0, 1.0, 0, 1.5),
 ('Nahida', 'Deepwood Memories', 0, 1.0, 1.0, 2.0, 0.5);
